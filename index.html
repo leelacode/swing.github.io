@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cricket swing, from the bowler's end</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#f3f5f0;--ink:#15261b;--ink2:#4b5c50;--line:#cfd8cc;--panel:#ffffff;--accent:#1f6b3a;--accentbg:#e1efe3;--chip:#eaeee7}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1a13;--ink:#e8efe9;--ink2:#9fb3a4;--line:#2a3b2f;--panel:#16241a;--accent:#7fd19a;--accentbg:#1f3a27;--chip:#1c2d21}}
+:root[data-theme="dark"]{--bg:#0f1a13;--ink:#e8efe9;--ink2:#9fb3a4;--line:#2a3b2f;--panel:#16241a;--accent:#7fd19a;--accentbg:#1f3a27;--chip:#1c2d21}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:15px}
+main{max-width:980px;margin:0 auto;padding:22px 16px 40px}
+h1{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-weight:700;font-size:clamp(28px,5vw,40px);line-height:1.05;margin:0 0 6px;letter-spacing:.2px}
+.sub{color:var(--ink2);margin:0 0 18px;max-width:66ch;line-height:1.5}
+.presets{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+button{font-family:inherit;color:inherit;cursor:pointer}
+.presets button{padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:var(--panel);font-size:14px;font-weight:500}
+.presets button:hover{border-color:var(--accent)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.ctrls{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px 22px;margin-bottom:16px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+.ctrl label{display:flex;justify-content:space-between;gap:8px;font-size:13px;margin-bottom:6px;color:var(--ink2)}
+.ctrl label .v{font-weight:600;color:var(--ink);text-align:right}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.seg{display:flex;gap:6px}
+.seg button{flex:1;padding:7px 4px;font-size:13px;border-radius:8px;border:1px solid var(--line);background:transparent}
+.seg button.on{background:var(--accentbg);border-color:var(--accent);color:var(--accent);font-weight:600}
+canvas{width:100%;height:auto;display:block;border-radius:12px}
+.playbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.pbtn{padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:var(--panel);font-size:14px;font-weight:500}
+.pbtn.main{background:var(--accent);color:var(--bg);border-color:var(--accent);font-weight:600;min-width:104px}
+.pbtn.on{border-color:var(--accent);color:var(--accent)}
+.hint{font-size:13px;color:var(--ink2)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:8px}
+.ptitle{font-size:13px;color:var(--ink2);margin:2px 4px 8px;font-weight:500}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
+.stat{background:var(--chip);border-radius:10px;padding:10px 12px}
+.stat .k{font-size:12px;color:var(--ink2)}
+.stat .val{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:21px;font-weight:600;margin-top:2px;line-height:1.1}
+.explain{font-size:15px;line-height:1.6;margin-top:16px;max-width:72ch}
+@media (max-width:640px){.row2{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}}
+</style></head>
+<body><main>
+<h1>Swing, seen from the bowler's end</h1>
+<p class="sub">Change the speed, seam angle, release line and which side of the ball is rough, and watch where it goes. The yellow line is the real flight; the dashed white line is where it would go with no swing at all. The ball knocks the stumps over only when your line and swing add up to a hit.</p>
+<div class="presets">
+  <button data-p="out">Classic outswinger</button>
+  <button data-p="in">Inswinger</button>
+  <button data-p="rev">Reverse swing</button>
+  <button data-p="dead">Seam upright, new ball</button>
+</div>
+<div class="ctrls">
+  <div class="ctrl"><label for="speed">Release speed <span class="v" id="vs"></span></label><input type="range" id="speed" min="100" max="155" step="1"></div>
+  <div class="ctrl"><label for="seam">Seam angle <span class="v" id="vseam"></span></label><input type="range" id="seam" min="-30" max="30" step="1"></div>
+  <div class="ctrl"><label for="aim">Release direction <span class="v" id="vaim"></span></label><input type="range" id="aim" min="-3" max="3" step="0.1"></div>
+  <div class="ctrl"><label for="len">Where it pitches <span class="v" id="vlen"></span></label><input type="range" id="len" min="0.5" max="10" step="0.1"></div>
+  <div class="ctrl"><label>Rough side faces</label><div class="seg" id="segRough"></div></div>
+  <div class="ctrl"><label>Ball condition</label><div class="seg" id="segWear"></div></div>
+  <div class="ctrl"><label>Display</label><div class="seg" id="segMag"></div></div>
+</div>
+<div class="playbar">
+  <button type="button" id="play" class="pbtn main">❚❚ Pause</button>
+  <button type="button" id="again" class="pbtn">↻ Bowl again</button>
+  <button type="button" id="loop" class="pbtn on" aria-pressed="true">Replay automatically: on</button>
+  <span class="hint">Tip: start it outside the line and let the swing bring it back onto the stumps, or aim straight at them.</span>
+</div>
+<canvas id="pov" aria-label="Bowler's view of the ball swinging down the pitch"></canvas>
+<div class="row2">
+  <div class="panel"><div class="ptitle">The ball from above, flying up the screen: why it swings</div><canvas id="ball"></canvas></div>
+  <div class="panel"><div class="ptitle">Bird's-eye path (sideways distance stretched about 8×)</div><canvas id="top"></canvas></div>
+</div>
+<div class="stats">
+  <div class="stat"><div class="k">Swing type</div><div class="val" id="sReg"></div></div>
+  <div class="stat"><div class="k">Movement</div><div class="val" id="sDir"></div></div>
+  <div class="stat"><div class="k">Swing by the stumps</div><div class="val" id="sDev"></div></div>
+  <div class="stat"><div class="k">Result</div><div class="val" id="sOut"></div></div>
+</div>
+<p class="explain" id="exp"></p>
+</main>
+<script>
+(function(){
+const P={speed:125,seam:15,aim:2.3,len:3,rough:'off',wear:'new',mag:1};
+const WEAR={new:{r:0.15,vc:152},mid:{r:0.45,vc:140},old:{r:0.75,vc:128}};
+const ZS=18.9, G=9.81, N=180;
+const zb=()=>ZS-P.len;
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+let TXT=css('--ink'),TXT2=css('--ink2');
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{TXT=css('--ink');TXT2=css('--ink2');drawBall();});
+const FONT='"Barlow",system-ui,sans-serif';
+function mk(c,w,h){const d=window.devicePixelRatio||1;c.width=w*d;c.height=h*d;const x=c.getContext('2d');x.setTransform(d,0,0,d,0,0);return x;}
+const PW=680,PH=420,TW=330,TH=260,BW=330,BH=260;
+const cp=mk(document.getElementById('pov'),PW,PH);
+const ct=mk(document.getElementById('top'),TW,TH);
+const cb=mk(document.getElementById('ball'),BW,BH);
+function rr(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();}
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const sm=u=>{u=clamp(u,0,1);return u*u*(3-2*u);};
+const L3=(a,b,u)=>({x:a.x+(b.x-a.x)*u,y:a.y+(b.y-a.y)*u,z:a.z+(b.z-a.z)*u});
+
+/* ---------- physics ---------- */
+let R=null,D=null;
+function sim(){
+  const v=P.speed/3.6, th=P.seam, w=WEAR[P.wear];
+  const sOff=(th/20)*Math.exp(1-Math.abs(th)/20);
+  const conv=sOff+(P.rough==='off'?1:-1)*w.r;
+  const regime=Math.tanh((w.vc-P.speed)/5);
+  const sf=Math.min(Math.pow(P.speed/120,1.5),1.35);
+  let S=regime*sf*conv; S=clamp(S,-1.2,1.2);
+  const ax=-3.4*S;
+  const phi=P.aim*Math.PI/180, vx=v*Math.sin(phi), vz=v*Math.cos(phi);
+  const x0=-0.25,y0=2.2, tb=zb()/vz, vy0=(0.5*G*tb*tb-y0)/tb, vyb=-(vy0-G*tb)*0.6;
+  function pos(t){let x,y;
+    if(t<=tb){x=x0+vx*t+0.5*ax*t*t;y=y0+vy0*t-0.5*G*t*t;}
+    else{const d=t-tb;const xb=x0+vx*tb+0.5*ax*tb*tb;x=xb+(vx+ax*tb)*d;y=Math.max(0,vyb*d-0.5*G*d*d);}
+    return {t,x,y,z:vz*t,xs:x0+vx*t};}
+  const tEnd=(ZS+0.1)/vz, pts=[];
+  for(let i=0;i<=N;i++)pts.push(pos(tEnd*i/N));
+  const st=pos(ZS/vz);
+  return {S,regime,pts,st,dev:st.x-st.xs,bi:Math.round(N*tb/tEnd),pos,vz,x0,tan:Math.tan(phi),tS:ZS/vz};
+}
+const WF=2.2, HOLD=1.3, R_STUMP=0.0175, R_BALL=0.036, HITW=0.114+R_STUMP+R_BALL;
+function build(){
+  R=sim();
+  const tS=R.tS,st=R.st;
+  const inLine=Math.abs(st.x)<=HITW, low=st.y<=0.745;
+  D={tS,S2:R.pos(tS),hit:inLine&&low,st};
+  const xs=[-0.114,0,0.114];
+  if(D.hit){D.hitX=st.x;D.hitIdx=xs.reduce((bi,x,i)=>Math.abs(x-st.x)<Math.abs(xs[bi]-st.x)?i:bi,0);}
+  D.post=D.hit?1.9:1.0;
+  const sw=Math.abs(R.dev*100), names=['off','middle','leg'];
+  if(D.hit){D.big='Bowled! '+names[D.hitIdx][0].toUpperCase()+names[D.hitIdx].slice(1)+' stump';
+    D.short=(sw>=10?'Swung '+Math.round(sw)+' cm onto ':'Straight onto ')+names[D.hitIdx]+' stump';}
+  else if(inLine&&!low){D.big='Over the stumps';D.short='Bounced over the top';D.over=true;}
+  else{const miss=Math.max(1,Math.round((Math.abs(st.x)-HITW)*100));D.big='Missed '+(st.x<0?'off':'leg')+' stump by '+miss+' cm';D.short='Missed '+(st.x<0?'off':'leg')+' by '+miss+' cm';D.side=st.x<0?'off':'leg';D.miss=miss;}
+  // wall-clock time of the bounce, for the dust puff
+  const tb=zb()/R.vz;let lo=0,hi=WF;for(let k=0;k<30;k++){const m=(lo+hi)/2;realT(m)<tb?lo=m:hi=m;}D.wB=lo;
+}
+function realT(w){const u=clamp(w/WF,0,1);return R.tS*(0.55*u+0.45*(1-(1-u)*(1-u)));}
+const RATE=()=>R.tS*0.55/WF;
+function totalW(){return WF+D.post+HOLD;}
+function stateAt(w){ // -> {t, post}
+  if(w<=WF)return {t:realT(w),post:-1};
+  const post=w-WF;return {t:D.hit?D.tS:Math.min(D.tS+RATE()*post,D.tS+0.3),post};
+}
+function ballAt(t,post){
+  if(!D.hit||post<0){const p=R.pos(t);return {x:p.x,y:p.y,z:p.z};}
+  const u=Math.min(1,post/1.2),S=D.S2,side=S.x<D.hitX?-1:1;
+  const bounce=S.y*Math.pow(1-u,2)*Math.abs(Math.cos(u*Math.PI*2.5));
+  return {x:S.x-0.1*u*Math.sign(S.x||1),y:bounce,z:ZS-R_BALL-0.9*(1-(1-u)*(1-u))};
+}
+/* exaggerated display keeps the true release and the true point at the stumps, so what you see hitting is what really hits */
+function chord(z){return R.x0+(R.st.x-R.x0)*z/ZS;}
+function mEff(z){return z<=ZS?P.mag:P.mag+(1-P.mag)*Math.min(1,(z-ZS)/2);}
+function dX(x,z){const c=chord(Math.min(z,ZS+2));return c+mEff(z)*(x-c);}
+
+/* ---------- Bowler POV ---------- */
+const cam={x:-0.1,y:8,z:-20}, F=3400, hY=-560;
+function pj(x,y,z){const dz=z-cam.z;return [PW/2+F*(x-cam.x)/dz, hY+F*(cam.y-y)/dz, F/dz];}
+function poly(c,pts,fill){c.beginPath();pts.forEach((p,i)=>{const q=pj(p[0],p[1],p[2]);i?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1]);});c.closePath();c.fillStyle=fill;c.fill();}
+function ln(c,a,b,col,wm){const p=pj(...a),q=pj(...b);c.strokeStyle=col;c.lineWidth=Math.max(1,wm*(p[2]+q[2])/2);c.beginPath();c.moveTo(p[0],p[1]);c.lineTo(q[0],q[1]);c.stroke();}
+function limb(c,a,b,w,col){ln(c,[a.x,a.y,a.z],[b.x,b.y,b.z],col,w);}
+function sprite(c,x,y,r){
+  const roughLeft=P.rough==='off', rc='#7c3328', sc='#d2281c';
+  c.beginPath();c.arc(x,y,r,Math.PI/2,Math.PI*1.5);c.closePath();c.fillStyle=roughLeft?rc:sc;c.fill();
+  c.beginPath();c.arc(x,y,r,-Math.PI/2,Math.PI/2);c.closePath();c.fillStyle=roughLeft?sc:rc;c.fill();
+  c.beginPath();c.ellipse(x+(roughLeft?r*0.42:-r*0.42),y-r*0.35,r*0.26,r*0.16,0,0,Math.PI*2);c.fillStyle='rgba(255,255,255,0.6)';c.fill();
+  c.strokeStyle='#f3e7c8';c.lineWidth=Math.max(1,r*0.18);c.beginPath();c.moveTo(x,y-r);c.lineTo(x,y+r);c.stroke();
+}
+function tag(c,t,x,y,al){c.textAlign=al;c.textBaseline='middle';const w=c.measureText(t).width+16;const bx=al==='left'?x-8:al==='right'?x-w+8:x-w/2;c.fillStyle='rgba(10,25,15,0.55)';rr(c,bx,y-11,w,22,6);c.fill();c.fillStyle='#fff';c.fillText(t,x,y);}
+function drawPOV(w){
+  const {t,post}=stateAt(w);
+  const c=cp;c.clearRect(0,0,PW,PH);
+  c.save();
+  if(D.hit&&post>=0&&post<0.3){const k=(1-post/0.3)*4;c.translate(Math.sin(post*95)*k,Math.cos(post*71)*k*0.6);}
+  c.fillStyle='#478536';c.fillRect(-10,-10,PW+20,PH+20);
+  for(let z=-6,k=0;z<140;z+=5,k++){if(k%2)continue;poly(c,[[-90,0,z],[90,0,z],[90,0,z+5],[-90,0,z+5]],'#52923f');}
+  poly(c,[[-1.52,0,-4],[1.52,0,-4],[1.52,0,21.5],[-1.52,0,21.5]],'#d6bd86');
+  poly(c,[[-0.9,0,11],[0.9,0,11],[0.9,0,16.5],[-0.9,0,16.5]],'rgba(170,140,90,0.25)');
+  const W='rgba(255,255,255,0.92)';
+  ln(c,[-1.83,0,ZS-1.22],[1.83,0,ZS-1.22],W,0.05);
+  ln(c,[-1.32,0,ZS],[1.32,0,ZS],W,0.05);
+  [-1.32,1.32].forEach(x=>{ln(c,[x,0,ZS+0.3],[x,0,ZS-2.44],W,0.05);ln(c,[x,0,-1.5],[x,0,2.44],W,0.05);});
+  ln(c,[-1.83,0,0],[1.83,0,0],W,0.05);
+  const pts=R.pts;
+  // no-swing line and predicted path
+  c.setLineDash([5,5]);c.strokeStyle='rgba(255,255,255,0.7)';c.lineWidth=1.4;c.beginPath();
+  pts.forEach((p,i)=>{const q=pj(dX(p.xs,p.z),p.y,p.z);i?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1]);});c.stroke();c.setLineDash([]);
+  c.strokeStyle='rgba(255,214,64,0.22)';c.lineWidth=2;c.beginPath();
+  pts.forEach((p,i)=>{const q=pj(dX(p.x,p.z),p.y,p.z);i?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1]);});c.stroke();
+  // dust puff where it pitches
+  const tB=zb()/R.vz, bp=R.pos(tB), bq=pj(dX(bp.x,bp.z),0,bp.z);
+  if(t>=tB){const age=w-D.wB;
+    if(age<0.7){for(let k=0;k<3;k++){const a=age/0.7,r=(6+k*5)*(0.4+a*1.4);c.fillStyle='rgba(205,180,130,'+(0.45*(1-a)*(1-k*0.25))+')';c.beginPath();c.ellipse(bq[0]+(k-1)*4*a*3,bq[1]-2*a*6,r,r*0.4,0,0,Math.PI*2);c.fill();}}
+    c.strokeStyle='rgba(255,255,255,0.9)';c.lineWidth=1.5;c.beginPath();c.ellipse(bq[0],bq[1],7,2.5,0,0,Math.PI*2);c.stroke();}
+  const ball=ballAt(t,post),bd={x:dX(ball.x,ball.z),y:ball.y,z:ball.z};
+  const drawB=()=>{const sh=pj(bd.x,0,bd.z),q=pj(bd.x,bd.y,bd.z);
+    const hs=clamp(1-bd.y/3,0.3,1);
+    c.fillStyle='rgba(0,0,0,'+(0.32*hs)+')';c.beginPath();c.ellipse(sh[0],sh[1],Math.max(2.5,0.05*sh[2]*(1.4-hs*0.4)),Math.max(1,0.016*sh[2]),0,0,Math.PI*2);c.fill();
+    sprite(c,q[0],q[1],Math.max(2.6,R_BALL*q[2]*1.15));};
+  // fading trail
+  const n=120;let prev=null;
+  for(let i=0;i<=n;i++){const tt=Math.min(t,D.hit?D.tS:t)*i/n,b=ballAt(tt,-1),q=pj(dX(b.x,b.z),b.y,b.z);
+    if(prev){const a=i/n;c.strokeStyle='rgba(255,210,63,'+(0.08+0.92*a*a)+')';c.lineWidth=1+2.6*a;c.beginPath();c.moveTo(prev[0],prev[1]);c.lineTo(q[0],q[1]);c.stroke();}prev=q;}
+  if(bd.z>ZS)drawB();
+  // stumps
+  const hit=D.hit&&post>=0, p=hit?post:0;
+  const ease=u=>1-Math.pow(1-clamp(u,0,1),3);
+  [-0.114,0,0.114].forEach((x,i)=>{let a=0,lean=0;
+    if(hit){const d=Math.abs(i-D.hitIdx);
+      if(d===0){a=1.35*ease(p/0.45);if(p>0.45)a-=0.1*Math.sin((p-0.45)*13)*Math.exp(-(p-0.45)*6);lean=clamp((D.S2.x-R.pos(D.tS-0.02).x)*6,-0.6,0.6);}
+      else{a=(d===1?0.24:0.06)*ease((p-0.03)/0.35);lean=i<D.hitIdx?-1:1;}}
+    const b=pj(x,0,ZS),tp=pj(x+lean*Math.sin(a)*0.35,0.71*Math.cos(a),ZS+Math.sin(a)*0.66);
+    c.lineCap='round';c.strokeStyle='#5a4a33';c.lineWidth=Math.max(3,0.045*b[2]);c.beginPath();c.moveTo(b[0],b[1]);c.lineTo(tp[0],tp[1]);c.stroke();
+    c.strokeStyle='#f4ecd8';c.lineWidth=Math.max(2,0.035*b[2]);c.stroke();c.lineCap='butt';});
+  const bail=(cx,cy,cz,th)=>{const q1=pj(cx-0.055*Math.cos(th),cy-0.055*Math.sin(th),cz),q2=pj(cx+0.055*Math.cos(th),cy+0.055*Math.sin(th),cz);
+    c.strokeStyle='#5a4a33';c.lineWidth=3.2;c.beginPath();c.moveTo(q1[0],q1[1]);c.lineTo(q2[0],q2[1]);c.stroke();c.strokeStyle='#f4ecd8';c.lineWidth=2;c.stroke();};
+  [-0.057,0.057].forEach((bx,k)=>{
+    if(!hit){bail(bx,0.725,ZS,0);return;}
+    const tp=p*0.9, vx=(bx-D.hitX)*5+(k?0.35:-0.35), vy=2.4+k*0.4, vz=1.3+k*0.3;
+    const tl=(vy+Math.sqrt(vy*vy+4*4.9*0.725))/9.8, tt=Math.min(tp,tl);
+    bail(bx+vx*tt,Math.max(0.01,0.725+vy*tt-4.9*tt*tt),ZS+vz*tt,(k?-1:1)*15*tt);});
+  if(hit&&post<0.35){const q=pj(dX(D.S2.x,ZS),D.S2.y,ZS),a=post/0.35;c.strokeStyle='rgba(255,255,255,'+(1-a)+')';c.lineWidth=2;c.beginPath();c.arc(q[0],q[1],6+a*26,0,Math.PI*2);c.stroke();}
+  if(bd.z<=ZS)drawB();
+  // gap marker on a miss
+  if(!D.hit&&!D.over&&post>=0&&D.miss<=60){const y=Math.min(0.6,D.st.y),bx=dX(D.st.x,ZS),sx=(D.st.x<0?-1:1)*(0.114+R_STUMP);
+    const edge=bx-(D.st.x<0?-1:1)*R_BALL,q1=pj(sx,y,ZS),q2=pj(edge,y,ZS),a=Math.min(1,post*4);
+    c.globalAlpha=a;c.strokeStyle='#fff';c.lineWidth=1.5;c.beginPath();c.moveTo(q1[0],q1[1]);c.lineTo(q2[0],q2[1]);
+    [q1,q2].forEach(q=>{c.moveTo(q[0],q[1]-5);c.lineTo(q[0],q[1]+5);});c.stroke();
+    c.font='600 12px '+FONT;tag(c,D.miss+' cm',(q1[0]+q2[0])/2,q1[1]-18,'center');c.globalAlpha=1;}
+  c.restore();
+  // labels
+  c.font='600 13px '+FONT;
+  tag(c,'◀ Off side (slips)',18,PH-22,'left');
+  tag(c,'Leg side ▶',PW-18,PH-22,'right');
+  c.font='500 12px '+FONT;
+  tag(c,'Right-arm over, to a right-handed batter',18,22,'left');
+  tag(c,P.speed+' km/h, in slow motion',PW-18,22,'right');
+  if(bd.z<3){c.font='600 12px '+FONT;const q=pj(bd.x,bd.y,bd.z);tag(c,P.rough==='off'?'◀ rough side':'rough side ▶',q[0]+(P.rough==='off'?-60:60),q[1]-26,'center');}
+  if(P.mag>1){c.font='500 12px '+FONT;tag(c,'Swing drawn '+P.mag+'× larger',PW/2,PH-22,'center');}
+  if(post>=0){const pop=1+0.35*Math.max(0,1-post/0.18);c.font='700 '+Math.round(24*pop)+'px "Barlow Condensed","Arial Narrow",sans-serif';c.globalAlpha=Math.min(1,post*8);tag(c,D.big,PW/2,PH-64,'center');c.globalAlpha=1;}
+}
+
+/* ---------- top view ---------- */
+function zy(z){return TH-24-(z/ZS)*(TH-54);} function xx(x){return TW/2+x*80;}
+function drawTop(w){
+  const {t,post}=stateAt(w);
+  const c=ct;c.clearRect(0,0,TW,TH);
+  c.fillStyle='#478536';rr(c,0,0,TW,TH,10);c.fill();
+  c.fillStyle='#d6bd86';c.fillRect(xx(-1.52),8,xx(1.52)-xx(-1.52),TH-16);
+  c.strokeStyle='rgba(255,255,255,0.9)';c.lineWidth=1.2;
+  [[ZS-1.22,1.83],[ZS,1.32],[0,1.83]].forEach(([z,w])=>{c.beginPath();c.moveTo(xx(-w),zy(z));c.lineTo(xx(w),zy(z));c.stroke();});
+  [-0.114,0,0.114].forEach((x,i)=>{c.fillStyle=(D.hit&&post>=0&&i===D.hitIdx)?'#ffd23f':'#fff';c.beginPath();c.arc(xx(x),zy(ZS),2.6,0,Math.PI*2);c.fill();});
+  c.strokeStyle='rgba(255,255,255,0.35)';c.setLineDash([2,3]);c.beginPath();c.moveTo(xx(-0.114),zy(ZS));c.lineTo(xx(-0.114),zy(0));c.moveTo(xx(0.114),zy(ZS));c.lineTo(xx(0.114),zy(0));c.stroke();
+  const pts=R.pts;
+  c.setLineDash([5,4]);c.strokeStyle='rgba(255,255,255,0.85)';c.lineWidth=1.4;c.beginPath();
+  pts.forEach((p,i)=>{i?c.lineTo(xx(p.xs),zy(p.z)):c.moveTo(xx(p.xs),zy(p.z));});c.stroke();c.setLineDash([]);
+  c.strokeStyle='rgba(255,214,64,0.4)';c.lineWidth=2;c.beginPath();pts.forEach((p,i)=>{i?c.lineTo(xx(p.x),zy(p.z)):c.moveTo(xx(p.x),zy(p.z));});c.stroke();
+  const tt=Math.min(t,D.tS),n=100;c.strokeStyle='#ffd23f';c.lineWidth=3;c.beginPath();
+  for(let i=0;i<=n;i++){const p=R.pos(tt*i/n);i?c.lineTo(xx(p.x),zy(p.z)):c.moveTo(xx(p.x),zy(p.z));}c.stroke();
+  const bp=R.pos(zb()/R.vz);c.strokeStyle='#fff';c.lineWidth=1.3;c.beginPath();c.arc(xx(bp.x),zy(bp.z),5,0,Math.PI*2);c.stroke();
+  {const b=ballAt(t,post);if(b.z<=ZS+0.1){c.fillStyle='#d2281c';c.strokeStyle='#fff';c.lineWidth=1.2;c.beginPath();c.arc(xx(b.x),zy(b.z),4.5,0,Math.PI*2);c.fill();c.stroke();}}
+  c.font='600 12px '+FONT;c.fillStyle='#fff';c.textBaseline='middle';
+  c.textAlign='left';c.fillText('Off',8,TH/2);c.textAlign='right';c.fillText('Leg',TW-8,TH/2);
+  c.font='500 11px '+FONT;c.textAlign='center';c.fillText('batter\u2019s stumps',TW/2,zy(ZS)-11);c.fillText('release',xx(-0.25),zy(0)+12);
+  c.textAlign=bp.x<0.6?'left':'right';c.fillText('pitches',xx(bp.x)+(bp.x<0.6?9:-9),zy(bp.z));
+}
+
+/* ---------- ball close-up ---------- */
+function rng(s){return function(){s=(s*16807)%2147483647;return s/2147483647;};}
+function drawBall(){
+  if(!R)return;
+  const c=cb;c.clearRect(0,0,BW,BH);
+  const cx=BW/2, cy=116, Rb=52, th=P.seam*Math.PI/180, Dg=Math.PI/180;
+  const S=R.S, m=Math.min(1,Math.abs(S)), L=S>=0?-1:1, sym=m<0.06, reg=R.regime;
+  const late=95+32*m, early=95-15*m;
+  const sepL=sym?95:(L===-1?late:early), sepR=sym?95:(L===1?late:early);
+  const pt=(sd,a,r)=>[cx+sd*r*Math.sin(a),cy-r*Math.cos(a)];
+  const tg=(sd,a)=>[sd*Math.cos(a),Math.sin(a)];
+  c.strokeStyle=TXT2;c.fillStyle=TXT2;c.lineWidth=1;
+  for(let i=-2;i<=2;i++){const x=cx+i*26;c.beginPath();c.moveTo(x,6);c.lineTo(x,22);c.stroke();c.beginPath();c.moveTo(x-3,18);c.lineTo(x,24);c.lineTo(x+3,18);c.fill();}
+  c.font='500 11px '+FONT;c.textAlign='left';c.textBaseline='middle';c.fillText('air rushing past',cx+62,14);
+  const len=95,pL=pt(-1,sepL*Dg,Rb+4),pR=pt(1,sepR*Dg,Rb+4),tL=tg(-1,sepL*Dg),tR=tg(1,sepR*Dg);
+  c.fillStyle='rgba(140,140,140,0.2)';c.beginPath();c.moveTo(pL[0],pL[1]);c.lineTo(pL[0]+tL[0]*len,pL[1]+tL[1]*len);c.lineTo(pR[0]+tR[0]*len,pR[1]+tR[1]*len);c.lineTo(pR[0],pR[1]);c.closePath();c.fill();
+  c.fillStyle=TXT2;c.textAlign='center';c.font='500 10px '+FONT;
+  const wx=(pL[0]+tL[0]*len+pR[0]+tR[0]*len)/2;c.fillText('wake',wx,Math.min(BH-24,(pL[1]+tL[1]*len+pR[1]+tR[1]*len)/2-4));
+  const n=[-Math.cos(th),Math.sin(th)], dt=[-Math.sin(th),-Math.cos(th)];
+  const top=[cx+dt[0]*Rb*1.6,cy+dt[1]*Rb*1.6],bot=[cx-dt[0]*Rb*1.6,cy-dt[1]*Rb*1.6];
+  function half(sd,fill){c.save();c.beginPath();c.arc(cx,cy,Rb,0,Math.PI*2);c.clip();c.beginPath();c.moveTo(top[0],top[1]);c.lineTo(bot[0],bot[1]);c.lineTo(bot[0]+n[0]*sd*Rb*3,bot[1]+n[1]*sd*Rb*3);c.lineTo(top[0]+n[0]*sd*Rb*3,top[1]+n[1]*sd*Rb*3);c.closePath();c.clip();fill();c.restore();}
+  const rs=P.rough==='off'?1:-1;
+  const roughFill=()=>{c.fillStyle='#7c3328';c.fillRect(0,0,BW,BH);const r=rng(7);for(let i=0;i<280;i++){c.fillStyle=r()<0.5?'rgba(210,150,130,0.55)':'rgba(40,10,5,0.45)';c.fillRect(cx-Rb+r()*2*Rb,cy-Rb+r()*2*Rb,1.6,1.6);}};
+  const shinyFill=()=>{const g=c.createRadialGradient(cx-Rb*0.2,cy-Rb*0.35,4,cx,cy,Rb);g.addColorStop(0,'#ff6a55');g.addColorStop(0.5,'#d2281c');g.addColorStop(1,'#8e1710');c.fillStyle=g;c.fillRect(0,0,BW,BH);c.fillStyle='rgba(255,255,255,0.6)';c.beginPath();c.ellipse(cx-n[0]*rs*Rb*0.45,cy-n[1]*rs*Rb*0.45-Rb*0.25,9,5,-0.5,0,Math.PI*2);c.fill();};
+  half(1,rs===1?roughFill:shinyFill);half(-1,rs===-1?roughFill:shinyFill);
+  c.save();c.beginPath();c.arc(cx,cy,Rb,0,Math.PI*2);c.clip();
+  c.strokeStyle='#f3e7c8';c.lineWidth=5;c.beginPath();c.moveTo(top[0],top[1]);c.lineTo(bot[0],bot[1]);c.stroke();
+  c.strokeStyle='rgba(120,90,50,0.8)';c.lineWidth=1;
+  for(let s=-Rb;s<=Rb;s+=6){const px=cx-dt[0]*s,py=cy-dt[1]*s;c.beginPath();c.moveTo(px+n[0]*4,py+n[1]*4);c.lineTo(px-n[0]*4,py-n[1]*4);c.stroke();}
+  c.restore();
+  c.strokeStyle='rgba(0,0,0,0.35)';c.lineWidth=1;c.beginPath();c.arc(cx,cy,Rb,0,Math.PI*2);c.stroke();
+  c.font='700 11px '+FONT;c.textAlign='center';c.fillStyle='#fff';
+  c.fillText(rs===1?'rough':'shiny',cx+n[0]*Rb*0.5,cy+n[1]*Rb*0.5+14);
+  c.fillText(rs===1?'shiny':'rough',cx-n[0]*Rb*0.5,cy-n[1]*Rb*0.5+14);
+  function layer(sd,sep,turb,thick){
+    const col=turb?'#ef8a2f':'#3b8fd6';c.strokeStyle=col;c.lineWidth=thick?3.5:2;c.beginPath();
+    for(let a=6;a<=sep;a+=2){const r=Rb+4+(thick?3:0)+(turb?2*Math.sin(a*0.9):0);const q=pt(sd,a*Dg,r);a===6?c.moveTo(q[0],q[1]):c.lineTo(q[0],q[1]);}
+    c.stroke();const q=pt(sd,sep*Dg,Rb+4),t=tg(sd,sep*Dg);
+    c.setLineDash([4,3]);c.lineWidth=1.5;c.beginPath();c.moveTo(q[0],q[1]);c.lineTo(q[0]+t[0]*len,q[1]+t[1]*len);c.stroke();c.setLineDash([]);
+    c.fillStyle=col;c.beginPath();c.arc(q[0],q[1],3.5,0,Math.PI*2);c.fill();
+  }
+  let tl,tr,thL=false,thR=false,labL,labR;
+  const CL='turbulent air\nclings, leaves late', ER='smooth air\nleaves early', TH2='thick, tired layer\nleaves early';
+  if(reg>0.35&&!sym){tl=L===-1;tr=L===1;labL=tl?CL:ER;labR=tr?CL:ER;}
+  else if(reg<-0.35&&!sym){tl=tr=true;thL=L===1;thR=L===-1;labL=thL?TH2:CL;labR=thR?TH2:CL;}
+  else{tl=tr=reg<0.35;labL=labR='about the same\non both sides';}
+  layer(-1,sepL,tl,thL);layer(1,sepR,tr,thR);
+  c.font='500 11px '+FONT;c.fillStyle=TXT;
+  const ml=(t,x,y,al)=>{c.textAlign=al;t.split('\n').forEach((s,i)=>c.fillText(s,x,y+i*13));};
+  ml(labL,4,cy-10,'left');ml(labR,BW-4,cy-10,'right');
+  if(!sym){const y=cy+Rb+34,x2=cx+L*(28+60*m);c.strokeStyle='#2f9e5a';c.fillStyle='#2f9e5a';c.lineWidth=3;c.beginPath();c.moveTo(cx,y);c.lineTo(x2,y);c.stroke();c.beginPath();c.moveTo(x2+L*9,y);c.lineTo(x2,y-6);c.lineTo(x2,y+6);c.fill();
+    c.font='600 12px '+FONT;c.textAlign='center';c.fillText('ball pushed this way',cx+L*30,y+17);}
+  else{c.font='600 12px '+FONT;c.fillStyle=TXT2;c.textAlign='center';c.fillText('no net sideways push',cx,cy+Rb+38);}
+  c.font='600 11px '+FONT;c.fillStyle=TXT2;c.textAlign='left';c.fillText('◀ Off',4,BH-8);c.textAlign='right';c.fillText('Leg ▶',BW-4,BH-8);
+}
+
+/* ---------- text ---------- */
+function update(){
+  build();
+  document.getElementById('vs').textContent=P.speed+' km/h ('+Math.round(P.speed/1.609)+' mph)';
+  document.getElementById('vseam').textContent=P.seam===0?'upright':Math.abs(P.seam)+'° toward '+(P.seam>0?'slips':'fine leg');
+  document.getElementById('vlen').textContent=P.len.toFixed(1)+' m from stumps ('+(P.len<1.5?'yorker':P.len<4?'full':P.len<7?'good length':'short')+')';
+  document.getElementById('vaim').textContent=Math.abs(P.aim)<0.05?'straight':Math.abs(P.aim).toFixed(1)+'° toward '+(P.aim>0?'leg':'off');
+  const reg=R.regime,S=R.S,sym=Math.abs(S)<0.06;
+  document.getElementById('sReg').textContent=reg>0.35?'Conventional':reg<-0.35?'Reverse':'Switch-over';
+  document.getElementById('sDir').textContent=sym?'Barely swings':(S>0?'Outswing':'Inswing');
+  const cm=Math.abs(R.dev*100);document.getElementById('sDev').textContent=cm<3?'Under 3 cm':Math.round(cm)+' cm to '+(R.dev<0?'off':'leg');
+  document.getElementById('sOut').textContent=D.short;
+  const side=S>0?'off side, away toward the slips':'leg side, into the batter';
+  const shinySide=P.rough==='off'?'leg':'off';
+  let e;
+  if(sym) e='The seam and the two surfaces are balanced, so air leaves both sides of the ball at about the same point and nothing pushes it sideways. A new ball with the seam bolt upright mostly goes straight.';
+  else if(reg>0.35) e='<b>Conventional swing.</b> On the '+(S>0?'off':'leg')+' side, the angled seam'+((P.rough==='off')===(S>0)?' and the rough leather':'')+' trip the thin layer of air hugging the ball into turbulence. Turbulent air clings to the surface longer before breaking away, while the smooth side lets go early. The wake gets flung the other way, so the ball is pushed to the '+side+'. The rule of thumb: conventional swing goes the way the seam points and toward the rough side, so for an outswinger the shiny side faces the batter.';
+  else if(reg<-0.35) e='<b>Reverse swing.</b> At '+P.speed+' km/h with a worn ball, the air turns turbulent on both sides almost immediately. The seam and rough side now carry a thick, tired boundary layer that breaks away earlier, while the shiny side clings longer. The push flips, and the ball swings toward the shiny '+shinySide+' side, the opposite of what the grip suggests.';
+  else e='This speed sits in the switch-over band for this ball. Conventional swing is fading and reverse hasn\u2019t taken over, so the two roughly cancel and the ball barely moves.';
+  let tip;
+  if(D.hit)tip=Math.abs(R.dev)>=0.1?'The swing did the work: it started outside the line and bent back onto the stumps.':'A straight, direct hit: there was little swing, but the line was right.';
+  else if(!D.miss&&D.miss!==0)tip='It was on line but pitched too short, so it bounced over. Pitch it fuller, closer to the stumps.';
+  else tip='Adjust the release direction a little toward '+(D.side==='off'?'leg':'off')+(Math.abs(R.dev)>0.1?', or change the seam angle so the swing brings it back,':'')+' and it will hit.';
+  e+='<br><br><b>'+D.big+'.</b> '+tip;
+  document.getElementById('exp').innerHTML=e;
+  drawBall();
+}
+
+/* ---------- playback ---------- */
+let simT=0,playing=true,loopOn=true,last=performance.now();
+const bPlay=document.getElementById('play'),bLoop=document.getElementById('loop');
+function setPlaying(v){playing=v;bPlay.textContent=v?'❚❚ Pause':'▶ Play';}
+function restart(){simT=0;setPlaying(true);}
+bPlay.onclick=()=>{if(!playing&&simT>=totalW()-0.01)simT=0;setPlaying(!playing);};
+document.getElementById('again').onclick=restart;
+bLoop.onclick=()=>{loopOn=!loopOn;bLoop.textContent='Replay automatically: '+(loopOn?'on':'off');bLoop.classList.toggle('on',loopOn);bLoop.setAttribute('aria-pressed',loopOn);};
+function frame(now){
+  const dt=Math.min(0.1,(now-last)/1000);last=now;
+  if(playing){simT+=dt;const total=totalW();
+    if(simT>=total){if(loopOn)simT=0;else{simT=total;setPlaying(false);}}}
+  const w=Math.min(simT,WF+D.post);
+  drawPOV(w);drawTop(w);
+  requestAnimationFrame(frame);
+}
+function seg(id,key,opts,num){const el=document.getElementById(id);el.innerHTML='';opts.forEach(([v,l])=>{const b=document.createElement('button');b.type='button';b.textContent=l;b.className=String(P[key])===String(v)?'on':'';b.setAttribute('aria-pressed',b.className==='on');b.onclick=()=>{P[key]=num?+v:v;sync();update();restart();};el.appendChild(b);});}
+function sync(){
+  document.getElementById('speed').value=P.speed;document.getElementById('seam').value=P.seam;document.getElementById('aim').value=P.aim;document.getElementById('len').value=P.len;
+  seg('segRough','rough',[['off','Off side'],['leg','Leg side']]);
+  seg('segWear','wear',[['new','New'],['mid','30 overs old'],['old','Old, scuffed']]);
+  seg('segMag','mag',[[1,'True scale'],[2,'Swing 2×'],[3,'Swing 3×']],true);
+}
+['speed','seam','aim','len'].forEach(k=>document.getElementById(k).addEventListener('input',e=>{P[k]=+e.target.value;update();restart();}));
+const PRE={out:{len:3,speed:125,seam:15,aim:2.3,rough:'off',wear:'new'},in:{len:3,speed:125,seam:-15,aim:-1.1,rough:'leg',wear:'new'},rev:{len:3,speed:146,seam:15,aim:-0.6,rough:'off',wear:'old'},dead:{len:3,speed:125,seam:0,aim:1.0,rough:'off',wear:'new'}};
+document.querySelectorAll('.presets button').forEach(b=>b.onclick=()=>{Object.assign(P,PRE[b.dataset.p]);sync();update();restart();});
+sync();update();requestAnimationFrame(frame);
+})();
+</script>
+</body></html>
